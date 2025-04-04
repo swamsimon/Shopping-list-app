@@ -1,0 +1,9 @@
+# Ignore C++ and C files in language stats
+*.cpp linguist-detectable=false
+*.c linguist-detectable=false
+*.h linguist-detectable=false
+*.hpp linguist-detectable=false
+*.cc linguist-detectable=false
+
+# Force Dart to be the main language
+*.dart linguist-language=Dart
