@@ -1,7 +1,9 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:shopping_list/data/categories.dart';
 import 'package:shopping_list/models/category.dart';
-import 'package:shopping_list/models/grocery_item.dart';
+import 'package:http/http.dart' as http;
 
 class NewItem extends StatefulWidget {
   const NewItem({super.key});
@@ -17,17 +19,36 @@ class _NewItemState extends State<NewItem> {
   var _selectedCategory =
       categories[Categories.spices]!; //this will never be null
 
-  void _saveItem() {
+  void _saveItem() async {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
-      Navigator.of(context).pop(
-        GroceryItem(
-          id: DateTime.now().toString(),
-          name: _enteredName,
-          quantity: _enteredQuantity,
-          category: _selectedCategory,
-        ),
+      final url = Uri.https(
+        'flutter-prep-e321a-default-rtdb.firebaseio.com',
+        'shopping-list.json',
       );
+      final response = await http.post(
+        url,
+        headers: {'Content-type': 'application/json'},
+        body: json.encode({
+          'name': _enteredName,
+          'quantity': _enteredQuantity,
+          'category': _selectedCategory.title,
+        },
+      ),
+      ) ;
+
+      
+      print(response.body);
+      print(response.statusCode);
+
+      if(!context.mounted){
+        return;
+      }
+      //if the context is mounted the below context is not mounted anymore to the screen and we will not execute this code  
+      Navigator.of(context).pop();
+       
+      
+      
     }
   }
 
