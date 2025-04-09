@@ -15,6 +15,8 @@ class GroceryList extends StatefulWidget {
 
 class _GroceryListState extends State<GroceryList> {
   List<GroceryItem> _groceryItems = [];
+  var _isLoading = true; //managing the loading state
+  String? _error; //may be null
 
   //load item method is triggered and this request is sent if the state object is created for the fist time
   @override
@@ -26,10 +28,16 @@ class _GroceryListState extends State<GroceryList> {
 
   void _loadItems() async {
     final url = Uri.https(
-      'flutter-prep-e321a-default-rtdb.firebaseio.com',
+      'abc.firebaseio.com',
+      //'flutter-prep-e321a-default-rtdb.firebaseio.com',
       'shopping-list.json',
     );
     final response = await http.get(url);
+    if (response.statusCode >= 400) {
+      setState(() {
+        _error = 'Failed to fetch data.Please try again later!';
+      });
+    }
     final Map<String, dynamic> listData = json.decode(response.body);
     final List<GroceryItem> loadItems = [];
     for (final item in listData.entries) {
@@ -50,6 +58,7 @@ class _GroceryListState extends State<GroceryList> {
     }
     setState(() {
       _groceryItems = loadItems;
+      _isLoading = false;
     });
   }
 
@@ -64,11 +73,10 @@ class _GroceryListState extends State<GroceryList> {
       return;
     }
 
-    setState((){
+    setState(() {
       _groceryItems.add(newItem);
     });
 
-    
     // if (newItem == null) {
     //   return;
     // }
@@ -88,6 +96,10 @@ class _GroceryListState extends State<GroceryList> {
     Widget mainContent = Center(
       child: const Text('No shopping items added yet!Please add some.'),
     );
+    //managing the loading state
+    if (_isLoading) {
+      mainContent = const Center(child: CircularProgressIndicator());
+    }
 
     if (_groceryItems.isNotEmpty) {
       mainContent = ListView.builder(
@@ -127,7 +139,9 @@ class _GroceryListState extends State<GroceryList> {
         itemCount: _groceryItems.length,
       );
     }
-
+    if (_error != null) {
+      mainContent = Center(child: Text(_error!));
+    }
     return Scaffold(
       appBar: AppBar(
         title: Text('GroceryList'),
