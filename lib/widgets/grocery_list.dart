@@ -28,38 +28,54 @@ class _GroceryListState extends State<GroceryList> {
 
   void _loadItems() async {
     final url = Uri.https(
-      'abc.firebaseio.com',
+      'flutter-prep-e321a-default-rtdb.firebaseio.com',
       //'flutter-prep-e321a-default-rtdb.firebaseio.com',
       'shopping-list.json',
     );
-    final response = await http.get(url);
-    if (response.statusCode >= 400) {
+    try {
+      final response = await http.get(url);
+      if (response.statusCode >= 400) {
+        setState(() {
+          _error = 'Failed to fetch data.Please try again later!';
+        });
+      }
+
+      if (response.body ==
+          'null') //what firebase does is it returns to string nullx`
+      {
+        setState(() {
+          _isLoading = false;
+        });
+        return; //so we will not execute below codes
+      }
+
+      final Map<String, dynamic> listData = json.decode(response.body);
+      //when there is no data, response body won't yield a map and it will return null
+      //we need to write condition about response.body null
+      final List<GroceryItem> loadItems = [];
+      for (final item in listData.entries) {
+        final category =
+            categories.entries
+                .firstWhere(
+                  (catItem) => catItem.value.title == item.value['category'],
+                )
+                .value;
+        loadItems.add(
+          GroceryItem(
+            id: item.key, //unique id that is provided by firebase
+            name: item.value['name'],
+            quantity: item.value['quantity'],
+            category: category,
+          ),
+        );
+      }
       setState(() {
-        _error = 'Failed to fetch data.Please try again later!';
+        _groceryItems = loadItems;
+        _isLoading = false;
       });
+    } catch (error) {
+      _error = 'Something went wrong.Please try again later!';
     }
-    final Map<String, dynamic> listData = json.decode(response.body);
-    final List<GroceryItem> loadItems = [];
-    for (final item in listData.entries) {
-      final category =
-          categories.entries
-              .firstWhere(
-                (catItem) => catItem.value.title == item.value['category'],
-              )
-              .value;
-      loadItems.add(
-        GroceryItem(
-          id: item.key, //unique id that is provided by firebase
-          name: item.value['name'],
-          quantity: item.value['quantity'],
-          category: category,
-        ),
-      );
-    }
-    setState(() {
-      _groceryItems = loadItems;
-      _isLoading = false;
-    });
   }
 
   void _addedItem() async {
@@ -85,10 +101,26 @@ class _GroceryListState extends State<GroceryList> {
     // }); //using set State because we want use build method again
   }
 
-  void _removeItem(GroceryItem item) {
+  void _removeItem(GroceryItem item) async {
+    final index = _groceryItems.indexOf(item);
+
     setState(() {
       _groceryItems.remove(item);
     });
+    final url = Uri.https(
+      'flutter-prep-e321a-default-rtdb.firebaseio/.com',
+      'shopping-list/${item.id}.json',
+    );
+    //inject value into the string
+    //just one item in the shopping list
+
+    final response = await http.delete(url);
+    if (response.statusCode >= 400) {
+      //optional: show error message
+      setState(() {
+        _groceryItems.insert(index, item);
+      });
+    }
   }
 
   @override
